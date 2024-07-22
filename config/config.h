@@ -21,7 +21,7 @@ public:
     // 根据触发模式设置监听文件描述符和通信文件描述符触发模式
     void set_trig_mode();
 
-private:
+public:
     // 端口号
     // - 9000 (默认)
     int port;

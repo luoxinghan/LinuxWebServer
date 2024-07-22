@@ -12,12 +12,12 @@ const char* error_404_form = "The requested file was not found on this server.\n
 const char* error_500_title = "Internal Error";
 const char* error_500_form = "There was an unusual problem serving the requested file.\n";
 
-Http_conn::Http_conn(){}
-Http_conn::~Http_conn(){}
+http_conn::http_conn(){}
+http_conn::~http_conn(){}
 
 // 类内定义 类外初始化
-int Http_conn::m_epfd = -1;
-int Http_conn::m_user_cout = 0;
+int http_conn::m_epfd = -1;
+int http_conn::m_user_cout = 0;
 
 // 网站资源的根目录
 const char * doc_root = "/home/lxh/webserver/resources";
@@ -60,7 +60,7 @@ void removefd(int epfd, int fd) {
     close(fd); // 关闭文件描述符
 }
 
-void Http_conn::init() {
+void http_conn::init() {
     m_checked_state = CHECK_STATE_REQUESTLINE; // 初始化状态为解析请求首行
     m_start_line = 0; // 当前正在解析的索引解析为0
     m_checked_index = 0; // 解析到的位置也初始化为0
@@ -81,7 +81,7 @@ void Http_conn::init() {
     bzero(m_real_file, FILENAME_MAX);
 }
 
-void Http_conn::init(int sockfd, const sockaddr_in &addr) {
+void http_conn::init(int sockfd, const sockaddr_in &addr) {
     m_sockfd = sockfd; // 初始化
     m_addr = addr;
 
@@ -97,7 +97,7 @@ void Http_conn::init(int sockfd, const sockaddr_in &addr) {
 }
 
 // 关闭连接
-void Http_conn::close_conn() {
+void http_conn::close_conn() {
     if(m_sockfd != -1) {
         // 关闭一个正常的文件描述符的时候，要考虑到多种操作
         removefd(m_epfd, m_sockfd);
@@ -107,7 +107,7 @@ void Http_conn::close_conn() {
 }
 
 // 循环读取客户数据，直到读取完毕或者没有数据可以读取
-bool Http_conn::read() {
+bool http_conn::read() {
     // 如果读的下标已经超过了读缓冲区大小，就说明读完了
     if(m_read_index >= READ_BUFFER_SIZE) {
         return false;
@@ -135,7 +135,7 @@ bool Http_conn::read() {
 } 
 
 // 写数据，写到写缓冲区中
-bool Http_conn::write() {
+bool http_conn::write() {
     int temp = 0;
     int bytes_have_send = 0; // 已经发送的字节
     int bytes_to_send = m_write_index; // 将要发送的字节（m_write_index）下一个要发送的
@@ -178,7 +178,7 @@ bool Http_conn::write() {
 }
 
 // 要分析目标文件的属性，即通过url找到资源然后写给客户端
-Http_conn::HTTP_CODE Http_conn::do_request() {
+http_conn::HTTP_CODE http_conn::do_request() {
     // 比如解析请求头后，服务器得到了资源的相对地址，就需要找到对应的资源
     strcpy(m_real_file, doc_root); // 先把doc_root的路径拷贝到real_file中
     int len = strlen(doc_root);
@@ -205,7 +205,7 @@ Http_conn::HTTP_CODE Http_conn::do_request() {
 }
 
 // 释放内存映射
-void Http_conn::unmap(){
+void http_conn::unmap(){
     if(m_file_address) {
         munmap(m_file_address, m_file_stat.st_size);
         m_file_address = 0;
@@ -213,7 +213,7 @@ void Http_conn::unmap(){
 }
 
 // 解析具体的某一行 - 从状态机 - 根据\n获取的
-Http_conn::LINE_STATUS Http_conn::parse_line(){
+http_conn::LINE_STATUS http_conn::parse_line(){
     // 获取一行数据 结束标志\r\n
     char temp; // 临时字符
     // 循环对检查索引递增，直到读的索引
@@ -246,7 +246,7 @@ Http_conn::LINE_STATUS Http_conn::parse_line(){
 
 // 解析请求首行 - 解析请求分开写
 // 获得请求方法，目标URL，HTTP版本信息
-Http_conn::HTTP_CODE Http_conn::parse_request_line(char * text){
+http_conn::HTTP_CODE http_conn::parse_request_line(char * text){
     // text是一行的数据 GET / HTTP/1.1
     // 这里利用字符串或者正则表达式使用
     // 查找text中 空格和\t的第一个位置，首先找到了text + 3
@@ -288,7 +288,7 @@ Http_conn::HTTP_CODE Http_conn::parse_request_line(char * text){
 }
 
 // 解析请求头
-Http_conn::HTTP_CODE Http_conn::parse_headers(char * text){
+http_conn::HTTP_CODE http_conn::parse_headers(char * text){
     // 如果遇到空行，说明头部解析完毕
     if(text[0] == '\0') {
         // 如果HTTP请求有消息体，还需要再读取一下m_content_length字节的消息体
@@ -324,7 +324,7 @@ Http_conn::HTTP_CODE Http_conn::parse_headers(char * text){
 }
 
 // 解析请求体
-Http_conn::HTTP_CODE Http_conn::parse_content(char * text){
+http_conn::HTTP_CODE http_conn::parse_content(char * text){
     // 这里不对请求体进行真正的解析，而是只判断请求体是否有
     if(m_read_index >= (m_content_length + m_checked_index)) {
         text[m_content_length] = '\0';
@@ -334,7 +334,7 @@ Http_conn::HTTP_CODE Http_conn::parse_content(char * text){
 }
 
 // 解析HTTP请求 - 主状态机
-Http_conn::HTTP_CODE Http_conn::process_read() {
+http_conn::HTTP_CODE http_conn::process_read() {
     // 主状态机的目的是对请求进行解析成三个部分，然后各自送到请求中解析返回
     LINE_STATUS line_status = LINE_OK; // 行状态OK
     HTTP_CODE ret = NO_REQUEST;
@@ -394,7 +394,7 @@ Http_conn::HTTP_CODE Http_conn::process_read() {
 
 // 往写缓冲m_write_buf中写入待发送的数据
 // 传入参数格式字符串和可变参数
-bool Http_conn::add_response(const char* format, ...) {
+bool http_conn::add_response(const char* format, ...) {
     // 如果当前写缓冲区下标大于写缓冲区的最大（写缓冲区写满了）
     if( m_write_index >= WRITE_BUFFER_SIZE ) {
         return false;
@@ -416,12 +416,12 @@ bool Http_conn::add_response(const char* format, ...) {
 }
 
 // 添加状态头
-bool Http_conn::add_status_line( int status, const char* title ) {
+bool http_conn::add_status_line( int status, const char* title ) {
     return add_response("%s %d %s\r\n", "HTTP/1.1", status, title);
 }
 
 // 添加请求头
-bool Http_conn::add_headers(int content_len) {
+bool http_conn::add_headers(int content_len) {
     add_content_length(content_len);
     add_content_type();
     add_linger();
@@ -430,29 +430,29 @@ bool Http_conn::add_headers(int content_len) {
 }
 
 // 添加请求
-bool Http_conn::add_content_length(int content_len) {
+bool http_conn::add_content_length(int content_len) {
     return add_response("Content-Length: %d\r\n", content_len);
 }
 
-bool Http_conn::add_linger() {
+bool http_conn::add_linger() {
     return add_response("Connection: %s\r\n", ( m_linger == true ) ? "keep-alive" : "close");
 }
 
-bool Http_conn::add_blank_line() {
+bool http_conn::add_blank_line() {
     return add_response("%s", "\r\n");
 }
 
-bool Http_conn::add_content(const char* content) {
+bool http_conn::add_content(const char* content) {
     return add_response("%s", content);
 }
 
-bool Http_conn::add_content_type() {
+bool http_conn::add_content_type() {
     return add_response("Content-Type:%s\r\n", "text/html");
 }
 
 
 // 根据服务器处理HTTP请求的结果，决定返回给客户端的内容
-bool Http_conn::process_write(HTTP_CODE ret) {
+bool http_conn::process_write(HTTP_CODE ret) {
     switch(ret) {
         // 如果是内部错误
         case INTERNAL_ERROR:
@@ -502,7 +502,7 @@ bool Http_conn::process_write(HTTP_CODE ret) {
 }
 
 // 由线程池的工作线程调用，这是处理HTTP请求的入口函数
-void Http_conn::process() {
+void http_conn::process() {
     // 这里要解析HTTP请求，然后生成响应
     // 1.解析HTTP请求
     HTTP_CODE read_ret = process_read();

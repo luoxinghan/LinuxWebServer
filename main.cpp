@@ -16,7 +16,7 @@ int main(int argc, char * argv[]) {
     // ------ 服务器信息 -------
     Server server;
     // 服务器初始化
-    server.init(config);
+    server.server_init(config);
 
 
     return 0;

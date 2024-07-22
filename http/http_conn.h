@@ -20,7 +20,7 @@ using namespace std;
  * 工作任务类（请求类）
  * 这个类是线程主要处理的工作，保存了一个请求信息
 */
-class Http_conn {
+class http_conn {
 public:
     // socket共有的一个epollfd，只有一个红黑树
     static int m_epfd;
@@ -66,9 +66,9 @@ public:
 
 public:
     // 构造函数
-    Http_conn();
+    http_conn();
     // 析构函数
-    ~Http_conn();
+    ~http_conn();
 
 public:
     // 用于处理（响应）客户端的请求（这个就是直接放这个请求要做什么事情的）
